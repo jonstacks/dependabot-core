@@ -28,10 +28,17 @@ module Dependabot
         super(Dependabot::Bazel::Version.normalize_bazel_version(@version_string))
       end
 
-      # Strips .bcr.N suffix and v prefix to yield a Gem::Version-compatible string.
+      # Strips .bcr.N suffix, v prefix, and normalizes wildcard segments
+      # to yield a Gem::Version-compatible string.
       sig { params(version_string: String).returns(String) }
       def self.normalize_bazel_version(version_string)
-        version_string.sub(/\.bcr\.\d+$/, "").sub(/^v/i, "")
+        normalized_version = version_string.sub(/\.bcr\.\d+$/, "").sub(/^v/i, "")
+        segments = normalized_version.split(".")
+
+        return normalized_version unless segments.last&.casecmp("x")&.zero?
+
+        segments[-1] = "999999999"
+        segments.join(".")
       end
 
       sig { override.returns(String) }
