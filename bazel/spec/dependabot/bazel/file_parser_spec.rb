@@ -110,6 +110,58 @@ RSpec.describe Dependabot::Bazel::FileParser do
     end
   end
 
+  context "with .bazelversion containing a major.x version" do
+    let(:dependency_files) { bazel_project_dependency_files("bazelversion_major_x") }
+
+    it "detects the major.x Bazel version" do
+      expect(parser.send(:bazel_version)).to eq("7.x")
+    end
+  end
+
+  context "with .bazelversion containing a version followed by a comment" do
+    let(:dependency_files) { bazel_project_dependency_files("bazelversion_with_comment") }
+
+    it "extracts the version and ignores the comment" do
+      expect(parser.send(:bazel_version)).to eq("8.7.0")
+    end
+  end
+
+  context "with .bazelversion containing a full git SHA" do
+    let(:dependency_files) { bazel_project_dependency_files("bazelversion_sha") }
+
+    it "returns nil for unresolvable SHA versions" do
+      expect(parser.send(:bazel_version)).to be_nil
+    end
+
+    it "does not raise an error" do
+      expect { parser.send(:bazel_version) }.not_to raise_error
+    end
+  end
+
+  context "with .bazelversion containing a relative path" do
+    let(:dependency_files) { bazel_project_dependency_files("bazelversion_relative_path") }
+
+    it "returns nil for relative path entries" do
+      expect(parser.send(:bazel_version)).to be_nil
+    end
+
+    it "does not raise an error" do
+      expect { parser.send(:bazel_version) }.not_to raise_error
+    end
+  end
+
+  context "with .bazelversion using a buildbuddy wrapper with a bazel version on the second line" do
+    let(:dependency_files) { bazel_project_dependency_files("bazelversion_buildbuddy") }
+
+    it "skips the wrapper line and returns the Bazel version" do
+      expect(parser.send(:bazel_version)).to eq("8.7.0")
+    end
+
+    it "does not raise an error" do
+      expect { parser.send(:bazel_version) }.not_to raise_error
+    end
+  end
+
   context "with *.MODULE.bazel files" do
     let(:dependency_files) { bazel_project_dependency_files("with_additional_module_files") }
 

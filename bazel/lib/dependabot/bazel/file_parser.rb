@@ -151,7 +151,27 @@ module Dependabot
       sig { returns(T.nilable(String)) }
       def bazel_version
         bazelversion_file = dependency_files.find { |f| f.name == ".bazelversion" }
-        bazelversion_file&.content&.strip
+        content = bazelversion_file&.content
+        return nil unless content
+
+        extract_version_from_bazelversion(content)
+      end
+
+      # Extracts the first parseable Bazel version from a .bazelversion file.
+      #
+      # .bazelversion files may contain wrapper lines (e.g. buildbuddy-io/5.0.356),
+      # comment lines (# comment), relative paths, or full git SHAs in addition to
+      # the actual semantic version. We skip non-version lines and return the first
+      # line that Bazel::Version can parse.
+      sig { params(content: String).returns(T.nilable(String)) }
+      def extract_version_from_bazelversion(content)
+        content.each_line do |line|
+          line = line.strip
+          next if line.empty?
+          next if line.start_with?("#")
+          return line if Version.correct?(line)
+        end
+        nil
       end
 
       sig { params(file: Dependabot::DependencyFile).returns(DependencySet) }

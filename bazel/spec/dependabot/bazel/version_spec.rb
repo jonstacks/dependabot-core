@@ -75,6 +75,22 @@ RSpec.describe Dependabot::Bazel::Version do
       expect(beta).to be < rc
       expect(rc).to be < release
     end
+
+    it "treats major wildcard versions as within the major range" do
+      wildcard = described_class.new("6.x")
+      major = described_class.new("6")
+      next_major = described_class.new("7")
+
+      expect(wildcard).to be > major
+      expect(wildcard).to be < next_major
+    end
+
+    it "treats wildcard versions as newer than concrete lower versions in the same major" do
+      wildcard = described_class.new("7.x")
+      concrete = described_class.new("7.0.0")
+
+      expect(wildcard).to be > concrete
+    end
   end
 
   describe "BCR .bcr.X suffix handling" do
@@ -215,6 +231,14 @@ RSpec.describe Dependabot::Bazel::Version do
 
     it "accepts .bcr.N suffixed versions" do
       expect(described_class.correct?("1.2.3.bcr.1")).to be true
+    end
+
+    it "accepts major wildcard versions" do
+      expect(described_class.correct?("6.x")).to be true
+    end
+
+    it "accepts v-prefixed major wildcard versions" do
+      expect(described_class.correct?("v7.x")).to be true
     end
 
     it "accepts v-prefixed prerelease versions" do
